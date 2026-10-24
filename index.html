@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>FF Toolkit Pro</title>
+<meta name="theme-color" content="#0d0d0f"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon.svg"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0d0d0f;--card:#17171b;--card2:#1f1f25;--fg:#f2f2f4;--mut:#8b8b96;--acc:#ff2e2e;--bd:#2a2a32}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px}
+body{padding-bottom:80px;padding-top:60px}
+header{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(13,13,15,.95);border-bottom:1px solid var(--bd);z-index:10}
+.logo{width:30px;height:30px;border-radius:9px;background:var(--acc);display:grid;place-items:center;font-weight:800;font-size:14px;color:#fff}
+h1{font-size:16px;margin:0;font-weight:600}
+.sub{margin-left:auto;font-size:11px;color:var(--mut)}
+main{padding:14px;max-width:640px;margin:0 auto}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:rgba(13,13,15,.97);border-top:1px solid var(--bd);z-index:10;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:0;color:var(--mut);font:inherit;font-size:10.5px;padding:9px 2px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+nav button.on{color:var(--acc)}
+nav svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:13px;margin-bottom:12px}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:9px}
+.row:last-child{margin-bottom:0}
+label{font-size:12px;color:var(--mut);flex:none;width:76px}
+select,input{flex:1;min-width:0;padding:9px 10px;font:inherit;font-size:14px;border-radius:9px;border:1px solid var(--bd);background:var(--card2);color:var(--fg)}
+.chip{flex:1;padding:9px 4px;font:inherit;font-size:12px;border-radius:9px;border:1px solid var(--bd);background:var(--card2);color:var(--fg);cursor:pointer}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+.btn{width:100%;padding:12px;font:inherit;font-size:14px;font-weight:600;border:0;border-radius:10px;background:var(--acc);color:#fff;cursor:pointer}
+.stats{display:flex;gap:8px}
+.stat{flex:1;text-align:center;background:var(--card2);border:1px solid var(--bd);border-radius:11px;padding:9px 4px}
+.stat b{display:block;font-size:24px;line-height:1.2;font-weight:700}
+.stat span{font-size:10px;color:var(--mut)}
+.acc{color:var(--acc)}
+h3{font-size:11px;color:var(--mut);margin:14px 0 7px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.li{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:9px;font-size:13.5px}
+.li:nth-child(odd){background:var(--card2)}
+.li .n{color:var(--mut);width:16px;font-size:11px}
+.li .g{flex:1}
+.li .v{color:var(--acc);font-weight:600}
+.note{font-size:11.5px;color:var(--mut);line-height:1.55;margin-top:9px}
+canvas{width:100%;display:block;border-radius:12px;background:var(--card2)}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;background:var(--acc);color:#fff;padding:9px 16px;border-radius:20px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:20}
+#toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header><div class="logo">FF</div><h1>FF Toolkit Pro</h1><div class="sub" id="tag">v1.0</div></header>
+<main id="view"></main>
+<nav id="nav"></nav>
+<div id="toast"></div>
+<script>
+var $=function(s){return document.querySelector(s)},$$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s))};
+var LS={g:function(k,d){try{var v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},s:function(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('on')},1800)}
+function copy(txt,msg){try{navigator.clipboard.writeText(txt);toast(msg||'Copiado')}catch(e){toast('Copia manual')}}
+
+var HP=200,VEST=[0,.2,.35,.5,.7],HELM=[0,.15,.3,.4];
+var FALL={SMG:[1,.82,.68],SG:[1,.6,.35],AR:[1,.9,.82],DMR:[1,1,.95],SR:[1,1,1],PISTOL:[1,.85,.7],LMG:[1,.88,.78]};
+var W=[
+["MP40",48,1000,2.0,20,2.0,"SMG"],["Thompson",48,750,2.0,30,2.2,"SMG"],["Vector",44,1000,2.0,19,2.1,"SMG"],
+["UMP",50,714,2.0,25,2.3,"SMG"],["P90",45,900,1.8,50,3.0,"SMG"],["MP5",47,800,1.9,30,2.2,"SMG"],
+["M1014",94,120,2.0,6,3.0,"SG"],["M1887",100,90,2.0,2,2.5,"SG"],["SPAS12",85,100,2.0,5,3.0,"SG"],["MAG-7",80,110,2.0,5,2.8,"SG"],
+["AK",61,550,2.3,30,2.4,"AR"],["Groza",62,540,2.3,30,2.5,"AR"],["AN94",58,560,2.2,30,2.4,"AR"],["SCAR",55,600,2.0,30,2.2,"AR"],
+["M4A1",53,660,2.0,30,2.2,"AR"],["XM8",52,640,2.0,30,2.2,"AR"],["Parafal",60,560,2.2,30,2.4,"AR"],["FAMAS",50,750,2.0,30,2.2,"AR"],
+["Woodpecker",90,40,2.5,5,3.0,"DMR"],["SKS",52,500,2.2,10,2.4,"DMR"],["M14",75,120,2.3,10,2.6,"DMR"],
+["Kar98k",120,40,2.5,5,3.5,"SR"],["M82B",145,35,2.5,5,4.0,"SR"],["AWM",160,30,2.5,5,4.0,"SR"],["SVD",95,100,2.3,10,3.0,"SR"],
+["M500",95,150,2.2,6,3.0,"PISTOL"],["Desert Eagle",90,180,2.2,7,2.4,"PISTOL"],["G18",40,600,1.8,15,1.8,"PISTOL"],["USP",45,400,1.9,12,2.0,"PISTOL"],
+["M249",45,750,1.8,100,5.0,"LMG"],["M60",48,700,1.8,60,4.5,"LMG"]
+];
+var CH=[["Alok","Onda de choque: +velocidad de movimiento y regenera HP"],["Chrono","Escudo de energia que bloquea disparos"],
+["Kelly","+velocidad al correr (pasiva)"],["Hayato","+penetracion de armadura"],["Jota","Recupera HP al eliminar"],
+["Miguel","Recupera EP al eliminar"],["Skyler","Onda que destruye muros de hielo"],["Wukong","Transformacion que evita dano"],
+["K","Modo jiu-jitsu: +EP y recuperacion"],["Kassie","Enlace que cura a companeros cercanos"],["Oscar","+dano con canon de asalto"],
+["Koda","Rastreo de enemigos"],["Moco","Marca enemigos al golpearlos"],["Dimitri","Zona que cura a aliados"],
+["Thiva","Rescate mas rapido"],["Xayne","+dano a muros y escudos"],["A-Patroa","Otorga un slot de habilidad extra"],
+["Homer","Dron que marca enemigos cercanos"],["Nairi","Rompe muros de hielo"],["Sonia","+recuperacion de EP"],
+["Rafael","Silencia disparos (pasiva)"],["Antonio","+HP maximo"],["Andrew","-dano recibido"],["Nikita","Recarga mas rapida"],
+["Laura","+precision"],["Ford","-dano fuera de zona segura"],["Paloma","+municion"],["Ramos","Rescate mas rapido"],
+["Kenta","Escudo frontal"],["Leon","Recupera HP al eliminar"]];
+var PET=[["Rockie","-cooldown de habilidad activa"],["Mr. Waggor","Genera muros de hielo automaticamente"],
+["Falco","+velocidad de caida y aterrizaje"],["Ottero","Convierte curacion en EP"],["Hoot","+rango de escaneo"],
+["Agumon","+dano y soporte de ataque"],["Fang","Gana EP/HP cuando cae un aliado"],["Detective Panda","+dano a enemigos marcados"],
+["Robo","+dano a muros"],["Dreki","Ralentiza enemigos cercanos"],["Sensei Tig","Reduce cooldown"],
+["Moony","+velocidad de recarga"],["Zasil","Recupera EP al usar medkit"],["Poring","+HP al aterrizar"],
+["Mochi","-dano de caida"],["Agent Hop","+velocidad de movimiento"],["Beaston","+dano con mascotas"],["Kitty","Cosmetico"],["Pug","Cosmetico"]];
+
+function dmg(i,z,v,h,rg){var w=W[i],b=w[1]*FALL[w[6]][rg];
+ if(z==='head')return b*w[3]*(1-HELM[h]); if(z==='limb')return b*0.75*(1-VEST[v]*0.5); return b*(1-VEST[v]);}
+function calc(i,z,v,h,rg){var w=W[i],d=dmg(i,z,v,h,rg),s=Math.ceil(HP/d),t=(s-1)*60/w[2],rel=s>w[4];
+ if(rel)t=(w[4]-1)*60/w[2]+w[5]+(s-w[4])*60/w[2]; return{t:t,s:s,d:d,dps:d*w[2]/60,rel:rel};}
+
+var S={w:8,zone:'chest',vest:2,helm:2,rg:0};
+function vTTK(){var r=calc(S.w,S.zone,S.vest,S.helm,S.rg);
+ var rank=W.map(function(_,i){var c=calc(i,S.zone,S.vest,S.helm,S.rg);return{i:i,t:c.t}}).sort(function(a,b){return a.t-b.t}).slice(0,8);
+ return '<div class="card">'+
+ '<div class="row"><label>Arma</label><select id="sw">'+W.map(function(w,i){return '<option value="'+i+'"'+(i==S.w?' selected':'')+'>'+w[0]+' · '+w[6]+'</option>'}).join('')+'</select></div>'+
+ '<div class="row"><label>Impacto</label>'+['head:Cabeza','chest:Pecho','limb:Extremidad'].map(function(x){var k=x.split(':')[0],l=x.split(':')[1];return '<button class="chip'+(S.zone==k?' on':'')+'" data-z="'+k+'">'+l+'</button>'}).join('')+'</div>'+
+ '<div class="row"><label>Distancia</label>'+['Corta','Media','Larga'].map(function(l,i){return '<button class="chip'+(S.rg==i?' on':'')+'" data-r="'+i+'">'+l+'</button>'}).join('')+'</div>'+
+ '<div class="row"><label>Chaleco</label>'+[0,1,2,3,4].map(function(v){return '<button class="chip'+(S.vest==v?' on':'')+'" data-v="'+v+'">'+(v||'—')+'</button>'}).join('')+'</div>'+
+ '<div class="row"><label>Casco</label>'+[0,1,2,3].map(function(h){return '<button class="chip'+(S.helm==h?' on':'')+'" data-h="'+h+'">'+(h||'—')+'</button>'}).join('')+'</div></div>'+
+ '<div class="card"><div class="stats">'+
+ '<div class="stat"><b class="acc">'+r.t.toFixed(2)+'</b><span>seg · TTK</span></div>'+
+ '<div class="stat"><b>'+r.s+'</b><span>balas</span></div>'+
+ '<div class="stat"><b>'+r.dps.toFixed(0)+'</b><span>DPS</span></div></div>'+
+ '<div class="note">Dano por bala <b>'+r.d.toFixed(1)+'</b> · cadencia '+W[S.w][2]+' RPM · cargador '+W[S.w][4]+(r.rel?' · <span style="color:var(--acc)">incluye recarga</span>':'')+'</div></div>'+
+ '<h3>Mejores con esta config</h3><div class="card">'+rank.map(function(x,i){return '<div class="li"><span class="n">'+(i+1)+'</span><span class="g">'+W[x.i][0]+'</span><span class="v">'+x.t.toFixed(2)+'s</span></div>'}).join('')+'</div>';}
+function bTTK(){$('#sw').onchange=function(e){S.w=+e.target.value;go('ttk')};
+ $$('[data-z]').forEach(function(b){b.onclick=function(){S.zone=b.dataset.z;go('ttk')}});
+ $$('[data-r]').forEach(function(b){b.onclick=function(){S.rg=+b.dataset.r;go('ttk')}});
+ $$('[data-v]').forEach(function(b){b.onclick=function(){S.vest=+b.dataset.v;go('ttk')}});
+ $$('[data-h]').forEach(function(b){b.onclick=function(){S.helm=+b.dataset.h;go('ttk')}});}
+
+var P=LS.g('ffprof',{style:'balance',dev:'media'});
+var NAMES=['General','Punto rojo','Mira 2x','Mira 4x','Mira AWM','Camara libre'];
+function sensVals(){var base={rush:[92,88,82,76,70,72],sniper:[70,64,58,52,46,52],balance:[84,76,70,64,58,62]}[P.style];
+ var adj={chica:[4,3,2,1,1,1],media:[0,0,0,0,0,0],grande:[-6,-5,-4,-3,-2,-2]}[P.dev];
+ return base.map(function(v,i){return Math.max(1,Math.min(100,v+adj[i]))});}
+function vSens(){var vals=sensVals();
+ return '<div class="card"><div class="row"><label>Estilo</label>'+['rush:Rush','balance:Balance','sniper:Sniper'].map(function(x){var k=x.split(':')[0],l=x.split(':')[1];return '<button class="chip'+(P.style==k?' on':'')+'" data-s="'+k+'">'+l+'</button>'}).join('')+'</div>'+
+ '<div class="row"><label>Pantalla</label>'+['chica:Chica','media:Media','grande:Grande'].map(function(x){var k=x.split(':')[0],l=x.split(':')[1];return '<button class="chip'+(P.dev==k?' on':'')+'" data-d="'+k+'">'+l+'</button>'}).join('')+'</div></div>'+
+ '<div class="card"><h3 style="margin-top:0">Perfil generado</h3>'+NAMES.map(function(n,i){return '<div class="row"><label style="width:92px">'+n+'</label><input type="range" min="1" max="100" value="'+vals[i]+'" id="r'+i+'"><span style="width:30px;text-align:right;font-size:13px" id="vv'+i+'">'+vals[i]+'</span></div>'}).join('')+
+ '<button class="btn" id="cpS" style="margin-top:11px">Copiar config completa</button>'+
+ '<div class="note" id="msgS">Ajusta y copia. Se guarda en tu telefono.</div></div>';}
+function bSens(){NAMES.forEach(function(_,i){$('#r'+i).oninput=function(e){$('#vv'+i).textContent=e.target.value}});
+ $$('[data-s]').forEach(function(b){b.onclick=function(){P.style=b.dataset.s;LS.s('ffprof',P);go('sens')}});
+ $$('[data-d]').forEach(function(b){b.onclick=function(){P.dev=b.dataset.d;LS.s('ffprof',P);go('sens')}});
+ $('#cpS').onclick=function(){var t='SENSIBILIDAD FF\n'+NAMES.map(function(n,i){return n+': '+$('#vv'+i).textContent}).join('\n')+'\n\nLOADOUT\nArma 1: MP40\nArma 2: M1887\nPersonaje: Alok / Kelly / Jota\nMascota: Rockie';
+ copy(t,'Config copiada');$('#msgS').textContent=t.replace(/\n/g,' | ')};}
+
+var D={tab:'armas',q:''};
+function vDB(){var q=D.q.toLowerCase(),list='';
+ if(D.tab==='armas')list=W.filter(function(w){return w[0].toLowerCase().indexOf(q)>-1}).map(function(w){return '<div class="li"><span class="g"><b>'+w[0]+'</b> <span style="color:var(--mut);font-size:11px">'+w[6]+'</span></span><span class="v">'+w[1]+'</span></div>'}).join('');
+ else{var arr=D.tab==='chars'?CH:PET;
+ list=arr.filter(function(c){return c[0].toLowerCase().indexOf(q)>-1}).map(function(c){return '<div class="li"><span class="g"><b>'+c[0]+'</b><br><span style="color:var(--mut);font-size:11.5px">'+c[1]+'</span></span></div>'}).join('');}
+ return '<div class="card"><input id="dq" placeholder="Buscar..." value="'+D.q+'"></div>'+
+ '<div class="row">'+[['armas','Armas'],['chars','Personajes'],['pets','Mascotas']].map(function(x){return '<button class="chip'+(D.tab==x[0]?' on':'')+'" data-t="'+x[0]+'">'+x[1]+'</button>'}).join('')+'</div>'+
+ '<div class="card">'+(list||'<div class="note">Sin resultados</div>')+'</div>';}
+function bDB(){$('#dq').oninput=function(e){var v=e.target.value;D.q=v;$('#view').innerHTML=vDB();var i=$('#dq');i.focus();i.setSelectionRange(v.length,v.length)};
+ $$('[data-t]').forEach(function(b){b.onclick=function(){D.tab=b.dataset.t;go('db')}});}
+
+var A={run:false,hits:0,miss:0,times:[],tgt:null,end:0,raf:0};
+function vAim(){var b=LS.g('ffbest',null);
+ return '<div class="card"><canvas id="cv" height="300"></canvas><div class="stats" style="margin-top:10px">'+
+ '<div class="stat"><b class="acc" id="aT">0</b><span>ms reaccion</span></div>'+
+ '<div class="stat"><b id="aH">0</b><span>aciertos</span></div>'+
+ '<div class="stat"><b id="aA">0%</b><span>precision</span></div></div>'+
+ '<button class="btn" id="aGo" style="margin-top:10px">Empezar 30 segundos</button>'+
+ '<div class="note">Toca el circulo rojo lo mas rapido que puedas. Entrena reflejos y memoria muscular.</div></div>'+
+ '<div class="card"><h3 style="margin-top:0">Tu record</h3><div class="note">'+(b?b.ms+' ms · '+b.acc+'% precision':'todavia no hay record')+'</div></div>';}
+function bAim(){var cv=$('#cv'),dpr=window.devicePixelRatio||1;cv.width=cv.clientWidth*dpr;cv.height=300*dpr;
+ var ctx=cv.getContext('2d');ctx.scale(dpr,dpr);var w=cv.clientWidth,h=300;
+ function nt(){A.tgt={x:40+Math.random()*(w-80),y:45+Math.random()*(h-90),r:26,born:performance.now()}}
+ function upd(){var avg=A.times.length?Math.round(A.times.reduce(function(a,b){return a+b},0)/A.times.length):0;
+  $('#aT').textContent=avg;$('#aH').textContent=A.hits;$('#aA').textContent=Math.round(A.hits/Math.max(1,A.hits+A.miss)*100)+'%';}
+ function draw(){ctx.fillStyle='#17171b';ctx.fillRect(0,0,w,h);ctx.textAlign='left';
+  if(A.run){var left=Math.max(0,A.end-performance.now());ctx.fillStyle='#8b8b96';ctx.font='12px system-ui';ctx.fillText((left/1000).toFixed(1)+'s',10,20);
+   if(A.tgt){ctx.beginPath();ctx.arc(A.tgt.x,A.tgt.y,A.tgt.r,0,7);ctx.fillStyle='#ff2e2e';ctx.fill();
+    ctx.beginPath();ctx.arc(A.tgt.x,A.tgt.y,6,0,7);ctx.fillStyle='#fff';ctx.fill();}
+   if(left>0){A.raf=requestAnimationFrame(draw)}else{A.run=false;fin();}}
+  else{ctx.fillStyle='#8b8b96';ctx.font='14px system-ui';ctx.textAlign='center';ctx.fillText('Toca Empezar',w/2,h/2);ctx.textAlign='left';}}
+ function fin(){var avg=A.times.length?Math.round(A.times.reduce(function(a,b){return a+b},0)/A.times.length):0;
+  var acc=Math.round(A.hits/Math.max(1,A.hits+A.miss)*100);var b=LS.g('ffbest',null);
+  if(acc>0&&(!b||acc>b.acc)){LS.s('ffbest',{ms:avg,acc:acc});toast('Nuevo record!')}
+  A.tgt=null;draw();upd();}
+ cv.onpointerdown=function(e){if(!A.run)return;var r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+  if(A.tgt&&Math.hypot(x-A.tgt.x,y-A.tgt.y)<=A.tgt.r+8){A.hits++;A.times.push(performance.now()-A.tgt.born);nt()}else{A.miss++}upd()};
+ $('#aGo').onclick=function(){A.run=true;A.hits=0;A.miss=0;A.times=[];A.end=performance.now()+30000;nt();upd();draw()};
+ upd();draw();}
+
+function vID(){return '<div class="card"><div class="row"><label>UID</label><input id="uid" inputmode="numeric" placeholder="1234567890"></div>'+
+ '<div class="row"><label>Region</label><select id="reg">'+['sg','ind','br','us','th','vn','id','me','pk','bd','ru'].map(function(r){return '<option>'+r+'</option>'}).join('')+'</select></div>'+
+ '<button class="btn" id="go2">Buscar jugador</button>'+
+ '<div class="note" id="out">Primero busca en tu cache de GitHub, luego directo, luego por proxy.</div></div>'+
+ '<div class="card"><h3 style="margin-top:0">Por que no banea</h3><div class="note">La app no toca el juego. No lee memoria, no modifica archivos, no inyecta nada. Solo calcula y muestra datos. Riesgo de ban: <b style="color:var(--acc)">cero</b>.</div></div>'+
+ '<button class="btn" id="inst" style="display:none">Instalar en el telefono</button>';}
+var deferred=null;
+function bID(){$('#go2').onclick=async function(){var u=$('#uid').value.trim(),r=$('#reg').value,o=$('#out');if(!u)return;
+ o.textContent='Buscando...';
+ try{var c=await (await fetch('data/cache.json',{cache:'no-store'})).json();
+  if(c.players&&c.players[u]&&!c.players[u].error){show(c.players[u],'cache de GitHub');return}}catch(e){}
+ var url='https://developers.freefirecommunity.com/api/v1/info?region='+r+'&uid='+u;
+ try{var a=await fetch(url);if(a.ok){show(await a.json(),'directo');return}}catch(e){}
+ try{var b=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url));if(b.ok){show(await b.json(),'via proxy');return}}catch(e){}
+ o.textContent='No se pudo conectar. Revisa el cache o usa el workflow de GitHub.';};
+ if(deferred)$('#inst').style.display='block';
+ $('#inst').onclick=function(){if(deferred){deferred.prompt();deferred=null}};}
+function show(j,src){var b=j.basicInfo||j.basicinfo||{};
+ $('#out').innerHTML='<b>'+((b.nickname||'?').trim())+'</b><br>Nivel '+((b.level!=null?b.level:'?'))+' · Rango '+((b.rank!=null?b.rank:'?'))+' · Region '+(b.region||'?')+'<br><span style="color:var(--mut)">fuente: '+src+'</span>';}
+
+var IC={
+ ttk:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>',
+ sens:'<svg viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.5"/><circle cx="15" cy="17" r="2.5"/></svg>',
+ db:'<svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>',
+ aim:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>',
+ id:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>'};
+var NAV=[['ttk','Dano'],['sens','Sens'],['db','Datos'],['aim','Aim'],['id','UID']];
+var VIEWS={ttk:[vTTK,bTTK],sens:[vSens,bSens],db:[vDB,bDB],aim:[vAim,bAim],id:[vID,bID]};
+function go(n){$('#view').innerHTML=VIEWS[n][0]();VIEWS[n][1]();$$('#nav button').forEach(function(b){b.classList.toggle('on',b.dataset.n===n)});window.scrollTo(0,0)}
+$('#nav').innerHTML=NAV.map(function(x){return '<button data-n="'+x[0]+'">'+IC[x[0]]+'<span>'+x[1]+'</span></button>'}).join('');
+$$('#nav button').forEach(function(b){b.onclick=function(){go(b.dataset.n)}});
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferred=e});
+go('ttk');
+if('serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js').catch(function(){})}catch(e){}}
+</script>
+</body>
+</html>
